@@ -10,7 +10,7 @@ The fundamental element of Epicary is a *saga*, which is a stateful, long-runnin
  * Are stateful
  * Can handle messages of varying types
  * Have a distinct lifecycle
- * Are threadsafe (by way of only handling one message at a time)
+ * Are threadsafe by way of [shared-nothing](http://en.wikipedia.org/wiki/Shared_nothing_architecture)
 
 The difference between sagas, actors, and typical message handlers is primarily in how messages are targeted to a handler. Actors handle messages that are *addressed* to them by id. Sagas handle messages that are *correlated* to them based on their contents.
 
@@ -69,6 +69,12 @@ Trigger the epic:
 	epicary.send(new CreateInstanceCommand());
 	
 This saga is initiated by the receipt of a CreateInstanceCommand. It then updates the state of a persistent record upon receipt of InstanceStarting event and the saga is ended upon receipt of an InstanceCreated or InstanceDied event. A timeout is placed on the saga to ensure that it does not run forever.
+
+## How things work
+
+Epicary sends and receives messages on a bus that can be tied into various underlying messaging technologies. As messages are received, they are correllated to new or existing sagas based on the contents of the message and the contents of existing sagas. Messages that correllate to a saga are handled one at a time by the saga. 
+
+Sagas communicate to each other stricly via message passing. In fact, saga references are never made available.
 	
 ## Gratitude
 
