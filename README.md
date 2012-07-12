@@ -1,6 +1,6 @@
 # Epicary 0.1.0
 
-Epicary let's you create stateful, long-running, message-driven workflows on top of any messaging technology.
+Epicary allows you create stateful, thread-safe, message-driven workflows.
 
 ## Into
 
@@ -9,6 +9,7 @@ The fundamental element of Epicary is a *saga*, which is a stateful, long-runnin
  * Have a unique identity
  * Are stateful
  * Can handle messages of varying types
+ * Have a distinct lifecycle
  * Are threadsafe (by way of only handling one message at a time)
 
 The difference between sagas, actors, and typical message handlers is primarily in how messages are targeted to a handler. Actors handle messages that are *addressed* to them by id. Sagas handle messages that are *correlated* to them based on their contents.
