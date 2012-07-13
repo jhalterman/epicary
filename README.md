@@ -4,7 +4,7 @@ Stateful, thread-safe, message-driven processing.
 
 ## Introduction
 
-Epicary was born with the goal of building stateful, message-driven systems with little fuss. It's ideal for creating processes where state changes are triggered by discrete messages.
+Epicary was born with the goal of building stateful, message-driven systems with little fuss. It's ideal for modeling activities where state changes are triggered by discrete messages.
 
 The fundamental element of Epicary is a *saga*. Sagas have similar properties to [actors](http://en.wikipedia.org/wiki/Actor_model) in that they:
 
