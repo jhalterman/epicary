@@ -1,22 +1,24 @@
 # Epicary 0.1.0
 
-Epicary allows you create stateful, thread-safe, message-driven workflows.
+Stateful, thread-safe, message-driven processing.
 
-## Into
+## Introduction
 
-The fundamental element of Epicary is a *saga*, which is a stateful, long-running, message handler. Sagas have similar properties to [actors](http://en.wikipedia.org/wiki/Actor_model) in that they both:
+Epicary was born with the goal of building stateful, message-driven systems with little fuss. It's ideal for creating processes where state changes are triggered by discrete messages.
 
- * Have a unique identity
+The fundamental element of Epicary is a *saga*. Sagas have similar properties to [actors](http://en.wikipedia.org/wiki/Actor_model) in that they:
+
  * Are stateful
+ * Have a unique identity
  * Can handle messages of varying types
  * Have a distinct lifecycle
- * Are threadsafe by way of [shared-nothing](http://en.wikipedia.org/wiki/Shared_nothing_architecture)
+ * Are thread-safe by way of serialized message handling and a [shared-nothing architecture](http://en.wikipedia.org/wiki/Shared_nothing_architecture)
 
-The difference between sagas, actors, and typical message handlers is primarily in how messages are targeted to a handler. Actors handle messages that are *addressed* to them by id. Sagas handle messages that are *correlated* to them based on their contents.
+The primary difference between sagas and actors is in how messages are directed to a handler. Actors handle messages that are *addressed* to them by identity. Sagas handle messages that are *correlated* to them based on their contents. Additionally sagas are durable, making them ideal for long-running processes and distributed systems where they can be migrated between nodes for workload re-distribution and survive node failures.
 
-## Examples
+## Example
 
-Define a saga:
+A saga that handles the creation of compute instances:
 
     public class CreateInstanceSaga extends AbstractSaga {
       @Inject transient ComputeClient computeClient;
@@ -64,7 +66,7 @@ Register the saga:
 	Epicary epicary = new Epicary()
 	epicary.register(CreateInstanceSaga.class);
 	
-Trigger the epic:
+Trigger the saga:
 
 	epicary.send(new CreateInstanceCommand());
 	
