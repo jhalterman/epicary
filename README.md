@@ -1,42 +1,45 @@
 # Epicary 0.1.0
 
-*Stateful, thread-safe, message-driven processing.*
+*Stateful, correlated message processing.*
 
-Epicary was designed to build stateful, message-driven systems with little fuss. It's ideal for modeling processes where state changes are triggered by discrete messages.
+Epicary is lightweight framework for modeling stateful, message driven processes using content-based message to process correlation.
 
 ## Overview
 
-An Epicary implementation is comprised of *epics*, which are message handlers similar to [actors](http://en.wikipedia.org/wiki/Actor_model) in that they:
+Epicary decouples message publishers from consumers by performing *content based correlation* of messages to processes. Processes in Epicary are modeled as *sagas* which are similar to [actors](http://en.wikipedia.org/wiki/Actor_model) in that they:
 
- * Are stateful
+ * Contain state
  * Have a unique identity
  * Handle messages of varying types
  * Have a distinct lifecycle
  * Are thread-safe (by way of serialized message handling and a [shared-nothing architecture](http://en.wikipedia.org/wiki/Shared_nothing_architecture))
 
-Where epics differ from actors is with message delivery. Actors handle messages that are *addressed* to them by identity. Epics handle messages that are *correlated* to them based on their contents. Additionally epics are durable, making them ideal for long-running processes and distributed systems where they can be migrated between nodes for workload re-distribution and survive node failures.
+Where sagas differ from actors is with message delivery. Actors handle messages that are *addressed* to them by identity. Sagas handle messages that are *correlated* to them based on the contents of the message and of the saga.
+
+Sagas can also be durable, making them ideal for long-running processes and distributed systems where they can be migrated between nodes for workload re-distribution or survive node failures.
 
 ## Usage
 
-Define an epic to represent some process:
+Let's define a saga to represent some process:
 
-    public class CreateInstancEpic extends AbstractEpic {
+    public class CreateInstancSaga extends AbstractSaga {
       private final transient ComputeClient computeClient;
       private final transient InstanceDAO dao;
       private int instanceId;
       
-      public CreateInstancEpic(ComputeClient computeClient, InstanceDAO dao) {
+      public CreateInstancSaga(ComputeClient computeClient, InstanceDAO dao) {
         this.computeClient = computeClient;
         this.dao = dao;
       }
-     
+
+	  /* Configure the properties on which messages should be correlated to this saga */
       @Override
       protected void configure() {
-        // Correlates messages to this epic by their instanceId
+        // Correlates messages to this saga by their instanceId
         map("instanceId").to(InstanceStartingEvent.class, InstanceCreatedEvent.class, InstanceDiedEvent.class);
       }
      
-      @StartsEpic
+      @StartsSaga
       public void handle(CreateInstanceCommand command) {
         instanceId = computeClient.createInstance();
         dao.createInstance(instanceId);
@@ -48,12 +51,12 @@ Define an epic to represent some process:
         dao.updateInstance(instanceId, "STARTING");
       }
      
-      @EndsEpic
+      @EndsSaga
       public void handle(InstanceCreatedEvent event) {
         dao.updateInstance(instanceId, "COMPLETED");
       }
      
-      @EndsEpic
+      @EndsSaga
       public void handle(InstanceDiedEvent event) {
         dao.updateInstance(instanceId, "DIED");
       }
@@ -66,18 +69,22 @@ Define an epic to represent some process:
       }
     }
 
-Register the epic:
+Register the saga:
 
 	Epicary epicary = new Epicary()
-	epicary.register(CreateInstanceEpic.class);
+	epicary.register(CreateInstanceSaga.class);
 	
-Initiate a new instance of the epic by sending a starting message:
+Initiate a new instance of the saga by sending a starting message:
 
 	epicary.send(new CreateInstanceCommand());
+	
+Subsequent messages will be correlated to the same saga instance if their instanceIds match:
 
-## How things work
+	epicary.send(new InstanceCreatedEvent(1234));
 
-Epicary sends and receives messages on a bus that can be tied into various underlying messaging technologies. As messages are received, they are correllated to new or existing epics based on the contents of the message and of existing epics. Messages that correllate to a epic are handled one at a time.
+## Concurrency
+
+As with the actor model, Epicary deals with concurrency by using message passing to communicate between sagas. Concurrent messages to a saga are handled serially and saga references are not exposed via the Epicary API since they are only intended to be called by Epicary internally.
 	
 ## Gratitude
 
