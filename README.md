@@ -22,65 +22,73 @@ Sagas can also be durable, making them ideal for long-running processes and dist
 
 Let's define a saga to represent some process:
 
-    public class CreateInstancSaga extends AbstractSaga {
-      private final transient ComputeClient computeClient;
-      private final transient InstanceDAO dao;
-      private int instanceId;
-      
-      public CreateInstancSaga(ComputeClient computeClient, InstanceDAO dao) {
-        this.computeClient = computeClient;
-        this.dao = dao;
-      }
+```java
+public class CreateInstancSaga extends AbstractSaga {
+  private final transient ComputeClient computeClient;
+  private final transient InstanceDAO dao;
+  private int instanceId;
+  
+  public CreateInstancSaga(ComputeClient computeClient, InstanceDAO dao) {
+    this.computeClient = computeClient;
+    this.dao = dao;
+  }
 
-	  /* Configure the properties on which messages should be correlated to this saga */
-      @Override
-      protected void configure() {
-        // Correlates messages to this saga by their instanceId
-        map("instanceId").to(InstanceStartingEvent.class, InstanceCreatedEvent.class, InstanceDiedEvent.class);
-      }
-     
-      @StartsSaga
-      public void handle(CreateInstanceCommand command) {
-        instanceId = computeClient.createInstance();
-        dao.createInstance(instanceId);
-        requestTimeout(10, TimeUnit.MINUTES);
-      }
-     
-      @HandlesMessage
-      public void handle(InstanceStartingEvent event) {
-        dao.updateInstance(instanceId, "STARTING");
-      }
-     
-      @EndsSaga
-      public void handle(InstanceCreatedEvent event) {
-        dao.updateInstance(instanceId, "COMPLETED");
-      }
-     
-      @EndsSaga
-      public void handle(InstanceDiedEvent event) {
-        dao.updateInstance(instanceId, "DIED");
-      }
-     
-      @Override
-      protected void timeout(Object state) {
-        dao.updateInstance(instanceId, "TIMED_OUT");
-        computeClient.killInstance(instanceId);
-        end();
-      }
-    }
+  /* Configure the properties on which messages should be correlated to this saga */
+  @Override
+  protected void configure() {
+    // Correlates messages to this saga by their instanceId
+    map("instanceId").to(InstanceStartingEvent.class, InstanceCreatedEvent.class, InstanceDiedEvent.class);
+  }
+ 
+  @StartsSaga
+  public void handle(CreateInstanceCommand command) {
+    instanceId = computeClient.createInstance();
+    dao.createInstance(instanceId);
+    requestTimeout(10, TimeUnit.MINUTES);
+  }
+ 
+  @HandlesMessage
+  public void handle(InstanceStartingEvent event) {
+    dao.updateInstance(instanceId, "STARTING");
+  }
+ 
+  @EndsSaga
+  public void handle(InstanceCreatedEvent event) {
+    dao.updateInstance(instanceId, "COMPLETED");
+  }
+ 
+  @EndsSaga
+  public void handle(InstanceDiedEvent event) {
+    dao.updateInstance(instanceId, "DIED");
+  }
+ 
+  @Override
+  protected void timeout(Object state) {
+    dao.updateInstance(instanceId, "TIMED_OUT");
+    computeClient.killInstance(instanceId);
+    end();
+  }
+}
+```
 
 Register the saga:
 
-	Epicary epicary = new Epicary()
-	epicary.register(CreateInstanceSaga.class);
+```java
+Epicary epicary = new Epicary()
+epicary.register(CreateInstanceSaga.class);
+```	
 	
 Initiate a new instance of the saga by sending a starting message:
 
-	epicary.send(new CreateInstanceCommand());
+```java
+epicary.send(new CreateInstanceCommand());
+```
 	
 Subsequent messages will be correlated to the same saga instance if their instanceIds match:
 
-	epicary.send(new InstanceCreatedEvent(1234));
+```java
+epicary.send(new InstanceCreatedEvent(1234));
+```
 
 ## Concurrency
 
